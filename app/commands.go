@@ -65,8 +65,6 @@ func Server(suite network.Suite) {
 	cliApp.Flags = []cli.Flag{
 		FlagDebug,
 		FlagConfig,
-		//cli.StringFlag{Name: "test.run"},
-		//cli.StringFlag{Name: "test.v"},
 	}
 	CmdServer.Action = func(c *cli.Context) {
 		runServer(c, suite)

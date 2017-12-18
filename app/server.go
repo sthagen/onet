@@ -23,8 +23,6 @@ import (
 	"github.com/dedis/onet/network"
 
 	"github.com/shirou/gopsutil/mem"
-	// CoSi-protocol is not part of the cothority.
-	// For the moment, the server only serves CoSi requests
 )
 
 // DefaultServerConfig is the default server configuration file-name.
@@ -225,7 +223,7 @@ func saveFiles(conf *CothorityConfig, fileConf string, group *GroupToml, fileGro
 	if err := conf.Save(fileConf); err != nil {
 		log.Fatal("Unable to write the config to file:", err)
 	}
-	log.Info("Success! You can now use the CoSi server with the config file", fileConf)
+	log.Info("Success! You can now use the conode server with the config file", fileConf)
 	// group definition part
 	if err := group.Save(fileGroup); err != nil {
 		log.Fatal("Could not write your group file snippet:", err)
@@ -253,7 +251,7 @@ func GetDefaultConfigFile(binaryName string) string {
 	// Fetch standard folders.
 	switch runtime.GOOS {
 	case "darwin":
-		return path.Join(u.HomeDir, "Library", binaryName, DefaultServerConfig)
+		return path.Join(u.HomeDir, "Library", strings.Title(binaryName), DefaultServerConfig)
 	default:
 		return path.Join(u.HomeDir, ".config", binaryName, DefaultServerConfig)
 		// TODO Windows? FreeBSD?
