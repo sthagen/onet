@@ -340,7 +340,7 @@ func (n *TreeNodeInstance) dispatchHandler(msgSlice []*ProtocolMsg) error {
 					n.Name(), reflect.TypeOf(msg.Msg),
 					errV.Interface().(error))
 			}
-			log.Lvl4("Dispatching", msg, "to", n.ServerIdentity().Address)
+			log.LLvl4("Dispatching", msg, "to", n.ServerIdentity().Address)
 			m := n.reflectCreate(to, msg)
 			errV = f.Call([]reflect.Value{m})[0]
 		}
