@@ -98,7 +98,7 @@ func (w *WebSocket) stop() {
 		return
 	}
 	log.Lvl3("Stopping", w.server.Server.Addr)
-	w.server.Stop(100 * time.Millisecond)
+	w.server.Stop(10 * time.Millisecond)
 	<-w.startstop
 	w.started = false
 }
