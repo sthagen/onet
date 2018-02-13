@@ -126,7 +126,6 @@ func (l *LocalTest) GenServers(n int) []*Server {
 func (l *LocalTest) GenTree(n int, register bool) ([]*Server, *Roster, *Tree) {
 	l.panicClosed()
 	servers := l.GenServers(n)
-
 	list := l.GenRosterFromHost(servers...)
 	tree := list.GenerateBinaryTree()
 	l.Trees[tree.ID] = tree

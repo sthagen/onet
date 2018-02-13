@@ -341,17 +341,15 @@ func TestOverlayRosterTreePropagation(t *testing.T) {
 
 func TestTokenId(t *testing.T) {
 	t1 := &Token{
-		RosterID: RosterID(uuid.NewV1()),
-		TreeID:   TreeID(uuid.NewV1()),
-		ProtoID:  ProtocolID(uuid.NewV1()),
-		RoundID:  RoundID(uuid.NewV1()),
+		TreeID:  TreeID(uuid.NewV1()),
+		ProtoID: ProtocolID(uuid.NewV1()),
+		RoundID: RoundID(uuid.NewV1()),
 	}
 	id1 := t1.ID()
 	t2 := &Token{
-		RosterID: RosterID(uuid.NewV1()),
-		TreeID:   TreeID(uuid.NewV1()),
-		ProtoID:  ProtocolID(uuid.NewV1()),
-		RoundID:  RoundID(uuid.NewV1()),
+		TreeID:  TreeID(uuid.NewV1()),
+		ProtoID: ProtocolID(uuid.NewV1()),
+		RoundID: RoundID(uuid.NewV1()),
 	}
 	id2 := t2.ID()
 	if id1.Equal(id2) {

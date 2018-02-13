@@ -1,6 +1,8 @@
 package onet
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 
@@ -353,22 +355,22 @@ type Roster struct {
 }
 
 // RosterID uniquely identifies an Roster
-type RosterID uuid.UUID
+type RosterID [32]byte
 
 // String returns the default representation of the ID (wrapper around
 // uuid.UUID.String()
 func (roID RosterID) String() string {
-	return uuid.UUID(roID).String()
+	return fmt.Sprintf("%x", roID[:])
 }
 
 // Equal returns true if and only if roID2 equals this RosterID.
 func (roID RosterID) Equal(roID2 RosterID) bool {
-	return uuid.Equal(uuid.UUID(roID), uuid.UUID(roID2))
+	return bytes.Compare(roID[:], roID2[:]) == 0
 }
 
 // IsNil returns true iff the RosterID is Nil
 func (roID RosterID) IsNil() bool {
-	return roID.Equal(RosterID(uuid.Nil))
+	return roID[:] == nil
 }
 
 // RosterTypeID of Roster message as registered in network
@@ -382,9 +384,7 @@ func NewRoster(ids []*network.ServerIdentity) *Roster {
 		return nil
 	}
 
-	r := &Roster{
-		ID: RosterID(uuid.NewV4()),
-	}
+	r := &Roster{}
 	// Take a copy of ids, in case the caller tries to change it later.
 	r.List = append(r.List, ids...)
 
@@ -401,7 +401,17 @@ func NewRoster(ids []*network.ServerIdentity) *Roster {
 		}
 		r.Aggregate = agg
 	}
+	r.UpdateID()
 	return r
+}
+
+// UpdateID recalculates the new ID of the roster.
+func (ro *Roster) UpdateID() {
+	hash := sha256.New()
+	for _, s := range ro.List {
+		s.Public.MarshalTo(hash)
+	}
+	copy(ro.ID[:32], hash.Sum(nil))
 }
 
 // Search searches the Roster for the given ServerIdentityID and returns the
@@ -543,6 +553,7 @@ func (ro *Roster) GenerateNaryTreeWithRootOnCurrent(N int, root *network.ServerI
 	rootIndex := 0
 	if root != nil {
 		rootIndex, _ = ro.Search(root.ID)
+
 		if rootIndex < 0 {
 			log.Lvl2("Asked for non-existing root:", root, ro.List)
 			return nil
