@@ -11,8 +11,16 @@ import (
 	"gopkg.in/dedis/crypto.v0/abstract"
 	"gopkg.in/dedis/crypto.v0/ed25519"
 	"gopkg.in/dedis/onet.v1/log"
+	"gopkg.in/dedis/onet.v1/simul/monitor"
 	"gopkg.in/satori/go.uuid.v1"
 )
+
+var monitorValueMutex sync.Mutex
+var monitorValue *monitor.Value
+
+func init() {
+	monitorValue = monitor.NewValue("marshalCount")
+}
 
 /// Encoding part ///
 
@@ -136,6 +144,10 @@ func Marshal(msg Message) ([]byte, error) {
 		return nil, err
 	}
 	_, err = b.Write(buf)
+
+	monitorValueMutex.Lock()
+	monitorValue.Store(1)
+	monitorValueMutex.Unlock()
 	return b.Bytes(), err
 }
 
@@ -160,6 +172,10 @@ func Unmarshal(buf []byte) (MessageTypeID, Message, error) {
 	if err := protobuf.DecodeWithConstructors(b.Bytes(), ptr, constructors); err != nil {
 		return ErrorType, nil, err
 	}
+
+	monitorValueMutex.Lock()
+	monitorValue.Store(1)
+	monitorValueMutex.Unlock()
 	return tID, ptrVal.Interface(), nil
 }
 
@@ -208,4 +224,9 @@ func (tr *typeRegistry) put(mid MessageTypeID, typ reflect.Type) {
 	tr.lock.Lock()
 	defer tr.lock.Unlock()
 	tr.types[mid] = typ
+}
+
+func CollectSum() float64 {
+	monitorValue.Collect()
+	return monitorValue.Sum()
 }
