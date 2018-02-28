@@ -12,7 +12,5 @@ test_playground:
 test_verbose:
 	go test -v -race -short ./...
 
-test_goveralls:
-	$(shell go env GOPATH)/bin/goveralls -service=travis-ci -race -show
-
-test: test_goveralls
+test:
+	go test -race -short ./...
