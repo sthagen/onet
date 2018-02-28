@@ -10,7 +10,7 @@ install:
 go_import_path: gopkg.in/dedis/onet.v2
 
 script:
-  - make test_stable
+  - make test
 
 notifications:
   email: false
