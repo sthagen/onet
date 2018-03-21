@@ -175,6 +175,12 @@ func (l *LocalTest) panicClosed() {
 
 // CloseAll closes all the servers.
 func (l *LocalTest) CloseAll() {
+	l.CloseAllAndCheck(true, true)
+}
+
+// CloseAllAndCheck can verify if there are things left over that should
+// not be there anymore.
+func (l *LocalTest) CloseAllAndCheck(lingering bool, goroutines bool) {
 	log.Lvl3("Stopping all")
 	// If the debug-level is 0, we copy all errors to a buffer that
 	// will be discarded at the end.
@@ -182,16 +188,20 @@ func (l *LocalTest) CloseAll() {
 		log.OutputToBuf()
 	}
 
-	if l.T != nil {
+	if lingering {
 		ct := 0
 		for _, o := range l.Overlays {
 			for _, pi := range o.protocolInstances {
-				l.T.Logf("Lingering protocol instance: %T", pi)
+				log.Errorf("Lingering protocol instance: %T", pi)
+				ct++
+			}
+			for _, tn := range o.instances {
+				log.Error("Still active: ", tn.Info())
 				ct++
 			}
 		}
 		if ct > 0 {
-			l.T.Fatal("Protocols lingering.")
+			log.Fatal("Protocols lingering.")
 		}
 	}
 
@@ -219,6 +229,9 @@ func (l *LocalTest) CloseAll() {
 	l.closed = true
 	if log.DebugVisible() == 0 {
 		log.OutputToOs()
+	}
+	if goroutines {
+		log.AfterTest(nil)
 	}
 }
 
