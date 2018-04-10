@@ -86,10 +86,11 @@ class BaseRouter(Node):
 
 class Conode(Host):
     """A conode running in a host"""
-    def config(self, gw=None, simul="", rootLog=None, **params):
+    def config(self, gw=None, simul="", suite="", rootLog=None, **params):
         self.gw = gw
         self.simul = simul
         self.rootLog = rootLog
+        self.suite = suite
         super(Conode, self).config(**params)
         if runSSHD:
             self.cmd('/usr/sbin/sshd -D &')
@@ -100,7 +101,7 @@ class Conode(Host):
         else:
             socat="socat - %s:%s:%d" % (socatSend, self.gw, socatPort)
 
-        args = "-debug %s -address %s:2000 -simul %s" % (debugLvl, self.IP(), self.simul)
+        args = "-debug %s -address %s:2000 -simul %s -suite %s" % (debugLvl, self.IP(), self.simul, self.suite)
         if True:
             args += " -monitor %s:10000" % global_root
         ldone = ""
@@ -140,7 +141,7 @@ class InternetTopo(Topo):
                 host = self.addHost('h%d' % i, cls=Conode,
                                     ip = '%s/%d' % (ipStr, prefix),
                                     defaultRoute='via %s' % gw,
-			                	    simul=simulation, gw=gw,
+			                	    simul=simulation, gw=gw, suite=suite,
                                     rootLog=rootLog)
                 dbg( 3, "Adding link", host, switch )
                 self.addLink(host, switch, bw=bandwidth, delay=delay)
@@ -191,7 +192,7 @@ def GetNetworks(filename):
     It returns the first server encountered, our network if our ip is found
     in the list and the other networks."""
 
-    global simulation, bandwidth, delay, socatDirect, debugLvl, debugStr, preScript
+    global suite, simulation, bandwidth, delay, socatDirect, debugLvl, debugStr, preScript
 
     process = Popen(["ip", "a"], stdout=PIPE)
     (ips, err) = process.communicate()
@@ -202,7 +203,7 @@ def GetNetworks(filename):
 
     # Interpret the first two lines of the file with regard to the
     # simulation to run
-    simulation, bw, d = content.pop(0).rstrip().split(' ')
+    suite, simulation, bw, d = content.pop(0).rstrip().split(' ')
     bandwidth = int(bw)
     delay = d + "ms"
     dbgLvl, dbgTime, dbgColor = content.pop(0).rstrip().split(' ')
