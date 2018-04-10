@@ -1,6 +1,8 @@
 package onet
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -277,7 +279,8 @@ func createBucketForService(db *bolt.DB, bucketName string) error {
 
 func (s *serviceManager) dbFileName() string {
 	pub, _ := s.server.ServerIdentity.Public.MarshalBinary()
-	return path.Join(s.dbPath, fmt.Sprintf("%x.db", pub))
+	pubHash := sha256.Sum256(pub)
+	return path.Join(s.dbPath, fmt.Sprintf("%x.db", hex.EncodeToString(pubHash[:])))
 }
 
 // Process implements the Processor interface: service manager will relay
