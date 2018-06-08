@@ -8,6 +8,7 @@ import (
 	"github.com/dedis/onet"
 	"github.com/dedis/onet/log"
 	"github.com/dedis/onet/network"
+	"github.com/dedis/onet/simul/monitor"
 )
 
 /*
@@ -97,6 +98,9 @@ func (p *ProtocolCount) Start() error {
 // Dispatch listens for all channels and waits for a timeout in case nothing
 // happens for a certain duration
 func (p *ProtocolCount) Dispatch() error {
+	round := monitor.NewTimeMeasure("dispatch_" + p.Name())
+	defer log.Lvl1("Recording", p.Name())
+	defer round.Record()
 	running := true
 	for running {
 		log.Lvl3(p.Info(), "waiting for message for", p.Timeout())
