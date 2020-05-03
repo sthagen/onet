@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/load"
 	"github.com/shirou/gopsutil/net"
 
+	"github.com/shirou/gopsutil/cpu"
 	"go.dedis.ch/onet/v3/network"
 
 	"go.dedis.ch/onet/v3"
@@ -32,7 +32,7 @@ type TraceLogger struct {
 	// Print spans that are not in entryPoints so that the slice can be updated.
 	PrintSingleSpans int
 	// As the TraceLogger cannot use onet/log, turn on/off debug messages here.
-	TraceDebug bool
+	Debug bool
 	// currently active traces - the keys are the traceID or the go-routine
 	// id of the current call
 	traces map[string]*traceWrapper
@@ -95,7 +95,6 @@ func (logger *TraceLogger) AddOnetDefaults(si *network.ServerIdentity) {
 
 	logger.defaultFields["nodeName"] = si.String()
 	logger.defaultFields["nodeDescription"] = si.Description
-	logger.PrintSingleSpans = 10
 }
 
 // AddEntryPoints takes all given entry points and adds them to the internal
@@ -133,6 +132,29 @@ func (logger *TraceLogger) AddStats(c *onet.Context, repeat time.Duration) {
 					stackEntry{pkgPath: "go.dedis.ch/onet/v3/honeycomb",
 						method: "stats"})
 				t.add("status", c.ReportStatus())
+				var m runtime.MemStats
+				runtime.ReadMemStats(&m)
+				t.add("memstats", m)
+				var gc debug.GCStats
+				debug.ReadGCStats(&gc)
+				t.add("gcstats", gc)
+				ld, err := load.Avg()
+				if err == nil {
+					t.add("load", ld)
+				}
+				us, err := disk.Usage(".")
+				if err == nil {
+					t.add("disk-usage", us)
+				}
+				ioc, err := disk.IOCounters(".")
+				if err == nil {
+					t.add("disk-iostat", ioc)
+				}
+				netio, err := net.IOCounters(false)
+				if err == nil {
+					t.add("network-stat", netio)
+				}
+
 				t.send()
 			case <-logger.statsDone:
 				return
@@ -149,6 +171,8 @@ func (logger *TraceLogger) AddStats(c *onet.Context, repeat time.Duration) {
 //   - TRACING_CREATE_SINGLE_SPANS - whenever there is no entry point found,
 //  the system can create single spans that are not linked together.
 //   This is a fallback to regular logging when we cannot simulate traces.
+//   - TRACING_DEBUG - if true, fmt.Println is used for some additional
+//  debugging messages, as onet/log cannot be used within the logger
 //   - TRACING_ENTRY_POINTS - a "::" separated list of entry points that can
 //  be used to refine the tracing.
 //  The name of the entry points are the same as given by
@@ -172,6 +196,14 @@ func (logger *TraceLogger) AddEnvironment() error {
 				" be only \"true\" or \"false\"")
 		}
 		logger.NoSingleSpans = tcss == "true"
+	}
+	tdb := strings.ToLower(os.Getenv("TRACING_DEBUG"))
+	if tdb != "" {
+		if tdb != "true" && tdb != "false" {
+			return fmt.Errorf("while reading TRACING_CREATE_SINGLE_SPANS: can" +
+				" be only \"true\" or \"false\"")
+		}
+		logger.Debug = tdb == "true"
 	}
 	logger.AddEntryPoints(strings.Split(os.Getenv("TRACING_ENTRY_POINTS"), "::")...)
 	logger.AddDoneMsgs(strings.Split(os.Getenv("TRACING_DONE_MSGS"), "::")...)
@@ -203,7 +235,7 @@ func (logger *TraceLogger) getTraceSpan(lvl int, msg string, callLvl int) (*trac
 		if ok {
 			for _, done := range logger.doneMsgs {
 				if strings.Contains(msg, done) {
-					if logger.TraceDebug {
+					if logger.Debug {
 						fmt.Println("-- found done for", se.uniqueID())
 					}
 					delete(logger.traces, se.traceID)
@@ -211,7 +243,7 @@ func (logger *TraceLogger) getTraceSpan(lvl int, msg string, callLvl int) (*trac
 					return nil, nil
 				}
 			}
-			if logger.TraceDebug {
+			if logger.Debug {
 				fmt.Println("-- adding log to", se.uniqueID(), msg)
 			}
 			sw := tr.stackToSpan(ses[i:])
@@ -221,7 +253,7 @@ func (logger *TraceLogger) getTraceSpan(lvl int, msg string, callLvl int) (*trac
 
 		// Check if there is a new trace to be generated
 		if se.checkEntryPoint(logger.entryPoints) != "" {
-			if logger.TraceDebug {
+			if logger.Debug {
 				fmt.Println("-- new trace", se.uniqueID())
 				for _, s := range ses[i:] {
 					fmt.Println("-- ", s.uniqueID())
@@ -247,6 +279,7 @@ func (logger *TraceLogger) getTraceSpan(lvl int, msg string, callLvl int) (*trac
 	}
 	if !logger.NoSingleSpans {
 		tr, sw := logger.newTrace(context.TODO(), "", ses...)
+		logger.addDefaultFields(tr, sw)
 		tr.hcTrace.AddField("singleTrace", true)
 		sw.log(lvl, msg)
 		tr.send()
@@ -258,33 +291,11 @@ func (logger *TraceLogger) addDefaultFields(tw *traceWrapper, sw *spanWrapper) {
 	for k, v := range logger.defaultFields {
 		tw.hcTrace.AddField(k, v)
 	}
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	sw.add("memstats", m)
-	var gc debug.GCStats
-	debug.ReadGCStats(&gc)
-	sw.add("gcstats", gc)
 	ts, err := cpu.Times(false)
 	if err == nil {
 		for i, t := range ts {
 			sw.add("cpustat"+strconv.Itoa(i), t)
 		}
-	}
-	ld, err := load.Avg()
-	if err == nil {
-		sw.add("load", ld)
-	}
-	us, err := disk.Usage(".")
-	if err == nil {
-		sw.add("disk-usage", us)
-	}
-	ioc, err := disk.IOCounters(".")
-	if err == nil {
-		sw.add("disk-iostat", ioc)
-	}
-	netio, err := net.IOCounters(false)
-	if err == nil {
-		sw.add("network-stat", netio)
 	}
 }
 
