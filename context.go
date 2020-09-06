@@ -10,7 +10,6 @@ import (
 	"go.dedis.ch/onet/v3/network"
 	bbolt "go.etcd.io/bbolt"
 	"golang.org/x/xerrors"
-	uuid "gopkg.in/satori/go.uuid.v1"
 )
 
 // Context represents the methods that are available to a service.
@@ -331,7 +330,7 @@ func (c *Context) GetValidPeers(peerID network.PeerSetID) []network.
 func (c *Context) NewPeerSetID(data []byte) network.PeerSetID {
 	// Compute the PeerSetID as hash(serviceID | data)
 	h := sha256.New()
-	h.Write(uuid.UUID(c.ServiceID()).Bytes())
+	h.Write(c.serviceID[:])
 	h.Write(data)
 
 	return network.NewPeerSetID(h.Sum(nil))

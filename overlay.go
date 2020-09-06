@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
 	"golang.org/x/xerrors"
-	uuid "gopkg.in/satori/go.uuid.v1"
 )
 
 // timeout used to clean up protocol state so that children can keep
@@ -732,7 +732,7 @@ func (o *Overlay) NewTreeNodeInstanceFromProtocol(t *Tree, tn *TreeNode, protoID
 		TreeID:     t.ID,
 		RosterID:   t.Roster.ID,
 		ProtoID:    protoID,
-		RoundID:    RoundID(uuid.NewV4()),
+		RoundID:    RoundID(uuid.Must(uuid.NewRandom())),
 	}
 	tni := o.newTreeNodeInstanceFromToken(tn, tok, io)
 	o.RegisterTree(t)
@@ -748,7 +748,7 @@ func (o *Overlay) NewTreeNodeInstanceFromService(t *Tree, tn *TreeNode, protoID 
 		RosterID:   t.Roster.ID,
 		ProtoID:    protoID,
 		ServiceID:  servID,
-		RoundID:    RoundID(uuid.NewV4()),
+		RoundID:    RoundID(uuid.Must(uuid.NewRandom())),
 	}
 	tni := o.newTreeNodeInstanceFromToken(tn, tok, io)
 	o.RegisterTree(t)

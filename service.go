@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/google/uuid"
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/kyber/v3/util/key"
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/onet/v3/network"
 	bbolt "go.etcd.io/bbolt"
 	"golang.org/x/xerrors"
-	uuid "gopkg.in/satori/go.uuid.v1"
 )
 
 func init() {
@@ -84,12 +84,12 @@ func (s ServiceID) String() string {
 
 // Equal returns true if and only if s2 equals this ServiceID.
 func (s ServiceID) Equal(s2 ServiceID) bool {
-	return uuid.Equal(uuid.UUID(s), uuid.UUID(s2))
+	return s == s2
 }
 
 // IsNil returns true iff the ServiceID is Nil
 func (s ServiceID) IsNil() bool {
-	return s.Equal(ServiceID(uuid.Nil))
+	return uuid.UUID(s) == uuid.Nil
 }
 
 // NilServiceID is the empty ServiceID
@@ -128,7 +128,7 @@ func (s *serviceFactory) Register(name string, suite suites.Suite, fn NewService
 	if !s.ServiceID(name).Equal(NilServiceID) {
 		return NilServiceID, xerrors.Errorf("service %s already registered", name)
 	}
-	id := ServiceID(uuid.NewV5(uuid.NamespaceURL, name))
+	id := ServiceID(uuid.NewSHA1(uuid.NameSpaceURL, []byte(name)))
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.constructors = append(s.constructors, serviceEntry{

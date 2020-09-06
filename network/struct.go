@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/suites"
 	"go.dedis.ch/kyber/v3/util/encoding"
@@ -14,7 +15,6 @@ import (
 	"go.dedis.ch/onet/v3/log"
 	"go.dedis.ch/protobuf"
 	"golang.org/x/xerrors"
-	uuid "gopkg.in/satori/go.uuid.v1"
 )
 
 // MaxRetryConnect defines how many times we should try to connect.
@@ -143,7 +143,7 @@ func (eId ServerIdentityID) String() string {
 
 // Equal returns true if both ServerIdentityID are equal or false otherwise.
 func (eId ServerIdentityID) Equal(other ServerIdentityID) bool {
-	return uuid.Equal(uuid.UUID(eId), uuid.UUID(other))
+	return eId == other
 }
 
 // IsNil returns true iff the ServerIdentityID is Nil
@@ -185,7 +185,7 @@ func (si ServerIdentity) GetID() ServerIdentityID {
 	}
 
 	url := NamespaceURL + "id/" + si.Public.String()
-	return ServerIdentityID(uuid.NewV5(uuid.NamespaceURL, url))
+	return ServerIdentityID(uuid.NewSHA1(uuid.NameSpaceURL, []byte(url)))
 }
 
 // Equal tests on same public key
